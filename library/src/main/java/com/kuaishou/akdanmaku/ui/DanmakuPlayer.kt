@@ -316,6 +316,21 @@ class DanmakuPlayer(renderer: DanmakuRenderer, dataSource: DataSource? = null) {
     ObjectPool.releaseItem(item)
   }
 
+  /**
+   * 设置滚动弹幕的速度系数
+   * @param factor 速度系数。
+   */
+  fun setDanmakuRollingSpeed(factor: Float) {
+    if (factor <= 0) return
+
+    if (factor != config?.rollingSpeedFactor) {
+        config?.rollingSpeedFactor = factor
+    }
+
+    // 使用当前保存的尺寸重新计算时长
+    updateViewportState(currentDisplayerWidth, currentDisplayerHeight, currentDisplayerSizeFactor, true)
+  }
+
   internal fun notifyDisplayerSizeChanged(width: Int, height: Int) {
     val displayer = engine.context.displayer
     updateViewportState(width, height, displayer.getViewportSizeFactor())
@@ -328,16 +343,15 @@ class DanmakuPlayer(renderer: DanmakuRenderer, dataSource: DataSource? = null) {
     }
   }
 
-  private fun updateViewportState(width: Int, height: Int, viewportSizeFactor: Float) {
+  private fun updateViewportState(width: Int, height: Int, viewportSizeFactor: Float, forceUpdate: Boolean = false) {
     val config = this.config ?: return
     if (currentDisplayerWidth != width ||
       currentDisplayerHeight != height ||
-      currentDisplayerSizeFactor != viewportSizeFactor) {
-      val duration = clamp(
-        (DanmakuConfig.DEFAULT_DURATION * (viewportSizeFactor * width / PLAYER_WIDTH)).toLong(),
-        MIN_DANMAKU_DURATION,
-        MAX_DANMAKU_DURATION_HIGH_DENSITY
-      )
+      currentDisplayerSizeFactor != viewportSizeFactor ||
+      forceUpdate) {
+      val duration =
+        (DanmakuConfig.DEFAULT_DURATION * (viewportSizeFactor * width / PLAYER_WIDTH)).toLong()
+
       if (config.rollingDurationMs != duration) {
         config.rollingDurationMs = duration
         config.updateRetainer()

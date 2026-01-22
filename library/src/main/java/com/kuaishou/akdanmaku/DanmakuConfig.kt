@@ -62,16 +62,6 @@ data class DanmakuConfig(
   var preCacheTimeMs: Long = 100L,
 
   /**
-   * 弹幕的显示时长，滚动类型的弹幕为从屏幕一端出现到屏幕另一端完全移出的时间
-   */
-  var durationMs: Long = DEFAULT_DURATION,
-
-  /**
-   * 滚动弹幕持续时间
-   */
-  var rollingDurationMs: Long = durationMs,
-
-  /**
    * 文本缩放倍数
    */
   var textSizeScale: Float = 1f,
@@ -151,8 +141,21 @@ data class DanmakuConfig(
    */
   internal var firstShownGeneration: Int = 0,
   var dataFilter: List<DanmakuDataFilter> = emptyList(),
-  var layoutFilter: List<DanmakuLayoutFilter> = emptyList()
+  var layoutFilter: List<DanmakuLayoutFilter> = emptyList(),
+
+  var rollingSpeedFactor: Float = 1f,
 ) {
+  /**
+   * 弹幕的显示时长，滚动类型的弹幕为从屏幕一端出现到屏幕另一端完全移出的时间
+   */
+  var durationMs: Long = DEFAULT_DURATION
+    get() = if (rollingSpeedFactor > 0) (field / rollingSpeedFactor).toLong() else field
+
+  /**
+   * 滚动弹幕持续时间
+   */
+  var rollingDurationMs: Long = DEFAULT_DURATION
+    get() = if (rollingSpeedFactor > 0) (field / rollingSpeedFactor).toLong() else field
 
   var allGeneration =
     visibilityGeneration +
