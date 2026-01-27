@@ -217,8 +217,13 @@ data class DanmakuConfig(
       Log.d(DanmakuEngine.TAG, "Generation[$type] update to $generation")
     }
 
-    // 50M 缓存池
-    var CACHE_POOL_MAX_MEMORY_SIZE = 1024 * 1024 * 50
+    // 动态大小缓存池
+    var CACHE_POOL_MAX_MEMORY_SIZE = try {
+      val maxMemory = Runtime.getRuntime().maxMemory()
+      (maxMemory / 6).toInt().coerceAtLeast(1024 * 1024 * 50)
+    } catch (e: Exception) {
+      1024 * 1024 * 50
+    }
 
     const val DEFAULT_DURATION = 3800L
   }

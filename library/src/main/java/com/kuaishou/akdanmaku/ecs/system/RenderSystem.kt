@@ -94,47 +94,54 @@ internal class RenderSystem(context: DanmakuContext) : DanmakuEntitySystem(conte
     lastAllGeneration = config.allGeneration
     releaseDiscardResults()
 
-    val newRenderObjects = entities
-      .filter { entity ->
-        val item = entity.dataComponent?.item ?: return@filter false
-        val drawState = item.drawState
-        entity.filter?.filtered == false &&
-          item.state >= ItemState.Measured &&
-          drawState.visibility &&
-          drawState.measureGeneration == config.measureGeneration &&
-          drawState.layoutGeneration == config.layoutGeneration
+    val size = entities.size()
+    val newRenderObjects = ArrayList<RenderObject>(size)
+
+    for (i in 0 until size) {
+      val entity = entities[i]
+      val item = entity.dataComponent?.item ?: continue
+      val drawState = item.drawState
+
+      // 将 filter 的逻辑移到这里
+      if (!(entity.filter?.filtered == false &&
+                item.state >= ItemState.Measured &&
+                drawState.visibility &&
+                drawState.measureGeneration == config.measureGeneration &&
+                drawState.layoutGeneration == config.layoutGeneration)) {
+        continue
       }
-      .mapNotNullTo(ArrayList(entities.size())) { entity ->
-        val item = entity.dataComponent?.item ?: return@mapNotNullTo null
-        val drawState = item.drawState
-        val cache = item.drawState.drawingCache
-        val action = entity.action
-        if (listener != null && item.shownGeneration != config.firstShownGeneration) {
-          item.shownGeneration = config.firstShownGeneration
-          callbackHandler.obtainMessage(MSG_DANMAKU_SHOWN, item).sendToTarget()
+
+      // 将 mapNotNullTo 的逻辑移到这里
+      val cache = item.drawState.drawingCache
+      val action = entity.action
+      if (listener != null && item.shownGeneration != config.firstShownGeneration) {
+        item.shownGeneration = config.firstShownGeneration
+        callbackHandler.obtainMessage(MSG_DANMAKU_SHOWN, item).sendToTarget()
+      }
+
+      val renderObject = renderObjectPool.obtain().apply {
+        cache.increaseReference()
+        this.item = item
+        drawingCache = cache
+        transform.reset()
+        if (action != null) {
+          position.set(action.position)
+          rect.setEmpty()
+          action.toTransformMatrix(transform)
+          alpha = action.alpha
+          transform.postConcat(drawState.transform)
+        } else {
+          transform.set(drawState.transform)
         }
-        renderObjectPool.obtain().apply {
-          cache.increaseReference()
-          this.item = item
-          drawingCache = cache
-          transform.reset()
-          if (action != null) {
-            position.set(action.position)
-            rect.setEmpty()
-            action.toTransformMatrix(transform)
-            alpha = action.alpha
-            transform.postConcat(drawState.transform)
-          } else {
-            transform.set(drawState.transform)
-          }
-          position.set(drawState.positionX, drawState.positionY)
-          rect.set(drawState.rect)
-          if (item.isHolding) {
-            alpha = 1f
-            holding = true
-          }
+        position.set(drawState.positionX, drawState.positionY)
+        rect.set(drawState.rect)
+        if (item.isHolding) {
+          alpha = 1f
+          holding = true
         }
       }
+      newRenderObjects.add(renderObject)
+    }
 
     synchronized(this) {
       renderResult?.let {
