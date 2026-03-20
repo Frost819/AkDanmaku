@@ -236,6 +236,10 @@ internal class RenderSystem(context: DanmakuContext) : DanmakuEntitySystem(conte
       var holdingObj: RenderObject? = null
       val displayer = danmakuDisplayer
       renderResult.renderObjects.forEach { renderObj ->
+        if(renderObj.item.data.mode == 4){
+          Log.d(DanmakuEngine.TAG, "[Danmaku Display] Showing: ${renderObj.item.data.content},Mode: ${renderObj.item.data.mode}")
+        }
+
         debugPaint?.let {
           canvas.drawRect(renderObj.rect, it)
         }
